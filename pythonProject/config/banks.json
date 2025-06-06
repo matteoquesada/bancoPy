@@ -1,0 +1,22 @@
+{
+  "152": {
+    "name": "Local Bank",
+    "url": "http://192.168.1.10:3001"
+  },
+  "151": {
+    "name": "Banco Nacional",
+    "url": "http://192.168.1.20:3001"
+  },
+  "153": {
+    "name": "Banco Popular",
+    "url": "http://192.168.1.30:3001"
+  },
+  "CB": {
+    "name": "Banco Central",
+    "url": "http://192.168.2.10:3001"
+  },
+  "CR": {
+    "name": "Banco de Costa Rica",
+    "url": "http://192.168.1.30:3001"
+  }
+}
