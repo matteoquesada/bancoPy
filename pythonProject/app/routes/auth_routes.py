@@ -80,3 +80,31 @@ def check_auth():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/auth/current-user', methods=['GET'])
+def get_current_user_info():
+    """Get detailed current user information"""
+    try:
+        if 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user = User.query.get(session['user_id'])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get user accounts with phone links
+        from app.services.sinpe_service import SinpeService
+        accounts = SinpeService.get_user_accounts_with_phone_links(user.name)
+        
+        user_data = user.to_dict()
+        user_data['accounts'] = accounts
+        user_data['bank_code'] = '152'  # Local bank code
+        user_data['bank_name'] = 'Local Bank'
+        
+        return jsonify({
+            'success': True,
+            'user': user_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

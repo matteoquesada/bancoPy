@@ -67,14 +67,14 @@ class DatabaseService:
         
         db.session.flush()  # Get user IDs
         
-        # Create sample accounts
+        # Create sample accounts with proper IBAN format (CR21 + 0666 + 0001 + 12 digits)
         accounts_data = [
-            {'number': '152001234567890', 'balance': 50000.00},
-            {'number': '152001234567891', 'balance': 75000.00},
-            {'number': '152001234567892', 'balance': 100000.00},
-            {'number': '152001234567893', 'balance': 25000.00},
-            {'number': '152001234567894', 'balance': 150000.00},
-            {'number': '152001234567895', 'balance': 80000.00}
+            {'number': 'CR2106660001123456789012', 'balance': 50000.00},
+            {'number': 'CR2106660001123456789013', 'balance': 75000.00},
+            {'number': 'CR2106660001123456789014', 'balance': 100000.00},
+            {'number': 'CR2106660001123456789015', 'balance': 25000.00},
+            {'number': 'CR2106660001123456789016', 'balance': 150000.00},
+            {'number': 'CR2106660001123456789017', 'balance': 80000.00}
         ]
         
         accounts = []
@@ -108,10 +108,10 @@ class DatabaseService:
         
         # Create phone links
         phone_links_data = [
-            ('152001234567890', '88887777'),  # juan's first account
-            ('152001234567892', '88886666'),  # maria's account
-            ('152001234567893', '88885555'),  # carlos's first account
-            ('152001234567895', '88884444'),  # ana's account
+            ('CR2106660001123456789012', '88887777'),  # juan's first account
+            ('CR2106660001123456789014', '88886666'),  # maria's account
+            ('CR2106660001123456789015', '88885555'),  # carlos's first account
+            ('CR2106660001123456789017', '88884444'),  # ana's account
         ]
         
         for account_number, phone in phone_links_data:
@@ -125,32 +125,37 @@ class DatabaseService:
         sinpe_subscriptions = [
             {
                 'sinpe_number': '88887777',
-                'sinpe_bank_code': '152',
+                'sinpe_bank_code': '0666',
                 'sinpe_client_name': 'Juan Pérez Mora'
             },
             {
                 'sinpe_number': '88886666',
-                'sinpe_bank_code': '152',
+                'sinpe_bank_code': '0666',
                 'sinpe_client_name': 'María Rodríguez Soto'
             },
             {
                 'sinpe_number': '88885555',
-                'sinpe_bank_code': '152',
+                'sinpe_bank_code': '0666',
                 'sinpe_client_name': 'Carlos González Vargas'
             },
             {
                 'sinpe_number': '88884444',
-                'sinpe_bank_code': '152',
+                'sinpe_bank_code': '0666',
                 'sinpe_client_name': 'Ana López Jiménez'
             },
             {
+                'sinpe_number': '84966164',
+                'sinpe_bank_code': '0152',
+                'sinpe_client_name': 'Test User External'
+            },
+            {
                 'sinpe_number': '88883333',
-                'sinpe_bank_code': '151',
+                'sinpe_bank_code': '0151',
                 'sinpe_client_name': 'Pedro Ramírez Castro'
             },
             {
                 'sinpe_number': '88882222',
-                'sinpe_bank_code': '153',
+                'sinpe_bank_code': '0153',
                 'sinpe_client_name': 'Laura Fernández Rojas'
             }
         ]

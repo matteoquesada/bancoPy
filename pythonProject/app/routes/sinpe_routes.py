@@ -2,13 +2,17 @@
 SINPE Routes - API endpoints for SINPE functionality
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g, current_app
 from app.services.sinpe_service import SinpeService
-from app.utils.hmac_generator import verify_hmac
+from app.services.bccr_service import BCCRService
+from app.utils.hmac_generator import verify_hmac, generate_hmac, generate_nack_response, generate_ack_response
+from app.middleware.auth_middleware import login_required, validate_bank_request, require_sinpe_auth
+import logging
 
 sinpe_bp = Blueprint('sinpe', __name__)
 
 @sinpe_bp.route('/sinpe/user-link/<username>', methods=['GET'])
+@login_required
 def check_user_sinpe_link(username):
     """
     Check if user has SINPE phone link
@@ -34,8 +38,70 @@ def check_user_sinpe_link(username):
     except Exception as e:
         return jsonify({'error': 'Error del servidor'}), 500
 
-@sinpe_bp.route('/sinpe-movil', methods=['POST'])
+@sinpe_bp.route('/sinpe-transfer', methods=['POST'])
+@login_required
+@require_sinpe_auth
 def handle_sinpe_transfer():
+    """
+    Handle SINPE transfer requests (account to account)
+    
+    Expected payload:
+    {
+        "version": "1.0",
+        "timestamp": "ISO-8601",
+        "transaction_id": "UUID",
+        "sender": {
+            "account_number": "IBAN",
+            "bank_code": "0666",
+            "name": "string"
+        },
+        "receiver": {
+            "account_number": "IBAN",
+            "bank_code": "string",
+            "name": "string"
+        },
+        "amount": {
+            "value": float,
+            "currency": "CRC"
+        },
+        "description": "string"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['version', 'timestamp', 'transaction_id', 'sender', 'receiver', 'amount']
+        for field in required_fields:
+            if field not in data:
+                return jsonify(generate_nack_response(f'Missing field: {field}')), 400
+        
+        # Generate HMAC
+        hmac_signature = generate_hmac(
+            data['sender']['account_number'],
+            data['timestamp'],
+            data['transaction_id'],
+            data['amount']['value']
+        )
+        
+        # Add HMAC to payload
+        data['hmac_md5'] = hmac_signature
+        
+        # Process transfer
+        result = SinpeService.process_sinpe_transfer(data, g.current_user)
+        
+        if result.get('status') == 'ACK':
+            return jsonify(result), 201
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        return jsonify(generate_nack_response(str(e))), 500
+
+@sinpe_bp.route('/sinpe-movil', methods=['POST'])
+@login_required
+@require_sinpe_auth
+def handle_sinpe_movil():
     """
     Handle SINPE mobile transfer requests
     
@@ -108,7 +174,8 @@ def handle_sinpe_transfer():
             receiver_phone=receiver_phone,
             amount=amount['value'],
             currency=amount.get('currency', 'CRC'),
-            description=data.get('description', '')
+            description=data.get('description', ''),
+            current_user=g.current_user
         )
         
         return jsonify({
@@ -120,8 +187,8 @@ def handle_sinpe_transfer():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@sinpe_bp.route('/validate/<phone>', methods=['GET'])
-def validate_phone(phone):
+@sinpe_bp.route('/api/validate/<phone>', methods=['GET'])
+def validate_sinpe_movil(phone):
     """
     Validate phone number in BCCR system
     
@@ -132,21 +199,33 @@ def validate_phone(phone):
         JSON response with validation result
     """
     try:
+        # First check local database
         subscription = SinpeService.find_phone_subscription(phone)
         
-        if not subscription:
-            return jsonify({'error': 'No registrado'}), 404
+        if subscription:
+            return jsonify({
+                'name': subscription.sinpe_client_name,
+                'bank_code': subscription.sinpe_bank_code.lstrip('0'),  # Remove leading zero for response
+                'phone': subscription.sinpe_number,
+                'bank_name': current_app.config['BANKS'].get(subscription.sinpe_bank_code, {}).get('name', 'Unknown Bank')
+            })
             
-        return jsonify({
-            'name': subscription.sinpe_client_name,
-            'bank_code': subscription.sinpe_bank_code,
-            'phone': subscription.sinpe_number
-        })
+        # If not found locally, check with BCCR
+        bccr_result = BCCRService.validate_sinpe_number(phone)
+        if bccr_result:
+            # Add bank name to response
+            bank_code = f"0{bccr_result['bank_code']}"  # Add leading zero for config lookup
+            bccr_result['bank_name'] = current_app.config['BANKS'].get(bank_code, {}).get('name', 'Unknown Bank')
+            return jsonify(bccr_result)
+            
+        return jsonify({'error': 'No registrado'}), 404
         
     except Exception as e:
+        current_app.logger.error(f"Error validating phone {phone}: {str(e)}")
         return jsonify({'error': 'Error interno del servidor'}), 500
 
 @sinpe_bp.route('/sinpe/accounts/<username>', methods=['GET'])
+@login_required
 def get_user_sinpe_accounts(username):
     """
     Get all accounts for a user with their SINPE phone links

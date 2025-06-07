@@ -1,22 +1,25 @@
 {
-  "152": {
-    "name": "Local Bank",
+  "0666": {
+    "name": "My Bank",
+    "url": "http://192.168.1.10:5000"
+  },
+  "0152": {
+    "name": "Banco de Gayndall Gayseca",
     "url": "http://192.168.1.10:3001"
   },
-  "151": {
-    "name": "Banco Nacional",
-    "url": "http://192.168.1.20:3001"
-  },
-  "153": {
+  "0111": {
     "name": "Banco Popular",
-    "url": "http://192.168.1.30:3001"
+    "url": "http://192.168.4.10:4000"
   },
-  "CB": {
+  "BCCR": {
     "name": "Banco Central",
-    "url": "http://192.168.2.10:3001"
-  },
-  "CR": {
-    "name": "Banco de Costa Rica",
-    "url": "http://192.168.1.30:3001"
+    "url": "http://192.168.1.10:5432",
+    "db": {
+      "host": "192.168.1.10",
+      "port": 5432,
+      "user": "redes",
+      "password": "redes01",
+      "database": "postgresql"
+    }
   }
 }

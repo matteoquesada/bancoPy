@@ -1,61 +1,87 @@
 """
-IBAN Generation Utilities for SINPE Banking System
+IBAN Generator - Generate Costa Rican IBAN numbers
 """
 
 import random
-import string
 
-def generate_iban(bank_code: str = "152", country_code: str = "CR") -> str:
+def generate_account_number():
     """
-    Generate a Costa Rican IBAN for the banking system
+    Generate a Costa Rican account number (12 random digits)
     
-    Args:
-        bank_code: Bank code (default "152" for local bank)
-        country_code: Country code (default "CR" for Costa Rica)
-        
     Returns:
-        Generated IBAN string
+        str: Generated account number
     """
-    # Generate random account number (12 digits)
-    account_number = ''.join(random.choices(string.digits, k=12))
+    return ''.join([str(random.randint(0, 9)) for _ in range(12)])
+
+def generate_iban():
+    """
+    Generate a Costa Rican IBAN number
+    Format: CR21+0666+0001+12 random digits
     
-    # Calculate check digits (simplified - in real IBAN this is more complex)
-    check_digits = str(random.randint(10, 99))
+    Returns:
+        str: Generated IBAN number
+    """
+    # Fixed parts
+    country_code = "CR21"
+    bank_code = "0666"  # Our bank code with leading 0
+    branch_code = "0001"  # Fixed branch code
     
-    # Format: CR + check_digits + bank_code + account_number
-    iban = f"{country_code}{check_digits}{bank_code}{account_number}"
+    # Generate account number
+    account_number = generate_account_number()
+    
+    # Combine all parts
+    iban = f"{country_code}{bank_code}{branch_code}{account_number}"
     
     return iban
 
-def generate_account_number() -> str:
+def validate_iban(iban: str) -> bool:
     """
-    Generate a unique account number
-    
-    Returns:
-        Account number string
-    """
-    # Generate 15-digit account number
-    return ''.join(random.choices(string.digits, k=15))
-
-def validate_iban_format(iban: str) -> bool:
-    """
-    Basic IBAN format validation
+    Validate a Costa Rican IBAN number
     
     Args:
-        iban: IBAN to validate
+        iban: IBAN number to validate
         
     Returns:
-        True if format is valid, False otherwise
+        bool: True if valid, False otherwise
     """
-    if not iban or len(iban) < 15:
+    if not iban or len(iban) != 22:  # CR21 + 0666 + 0001 + 12 digits = 22 chars
         return False
         
-    # Check if starts with country code
-    if not iban[:2].isalpha():
+    # Check fixed parts
+    if not (iban.startswith("CR21") and 
+            iban[4:8] == "0666" and  # Our bank
+            iban[8:12] == "0001"):
         return False
+    
+    # Check if last 12 characters are digits
+    return iban[12:].isdigit()
+
+def extract_bank_code(iban: str) -> str:
+    """
+    Extract bank code from IBAN
+    
+    Args:
+        iban: IBAN number
         
-    # Check if rest contains only digits
-    if not iban[2:].isdigit():
-        return False
+    Returns:
+        str: Bank code or None if invalid
+    """
+    if not validate_iban(iban):
+        return None
+    
+    return iban[4:8]  # Get the bank code part (0666)
+
+def extract_account_number(iban: str) -> str:
+    """
+    Extract account number from IBAN
+    
+    Args:
+        iban: IBAN number
         
-    return True
+    Returns:
+        str: Account number or None if invalid
+    """
+    if not validate_iban(iban):
+        return None
+    
+    return iban[12:]  # Get the account number part (12 digits)
